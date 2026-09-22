@@ -98,13 +98,8 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
     }
     setCapsOn(false)
     if (e.key === 'Backspace') {
+      // Backspace is disabled: a wrong key never advances, so there is nothing to undo
       e.preventDefault()
-      setTest((t) => {
-        if (t.pos === 0 || t.finished) return t
-        const states = [...t.states]
-        states[t.pos - 1] = 'pending'
-        return { ...t, pos: t.pos - 1, states }
-      })
       return
     }
     if (e.key.length !== 1 || e.ctrlKey || e.metaKey) return
@@ -115,10 +110,18 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
       const startedAt = t.startedAt ?? Date.now()
       const states = [...t.states]
       const correct = e.key === t.chars[t.pos]
-      states[t.pos] = correct ? 'correct' : 'incorrect'
-      const errors = t.errors + (correct ? 0 : 1)
+
+      if (!correct) {
+        // Stay on the same character until the right key is pressed
+        states[t.pos] = 'incorrect'
+        return { ...t, states, startedAt, errors: t.errors + 1 }
+      }
+
+      // A char missed earlier stays marked incorrect for the accuracy tally
+      if (states[t.pos] === 'pending') states[t.pos] = 'correct'
       const pos = t.pos + 1
       const finished = pos >= t.chars.length
+      const errors = t.errors
 
       if (finished) {
         const seconds = (Date.now() - startedAt) / 1000
@@ -127,7 +130,8 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
         const res: TestResult = {
           lessonId: lesson.id,
           wpm,
-          accuracy: Math.round((correctChars / t.chars.length) * 1000) / 10,
+          // correct keypresses / total keypresses
+          accuracy: Math.round((t.chars.length / (t.chars.length + errors)) * 1000) / 10,
           seconds: Math.round(seconds),
           errors,
           passed: errors === 0 && seconds < 60,
@@ -143,10 +147,10 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
     if (test.startedAt === null) return { wpm: 0, acc: 100 }
     const seconds = Math.max((now - test.startedAt) / 1000, 1)
     const correctChars = test.states.filter((s) => s === 'correct').length
-    const typed = test.pos
+    const presses = test.pos + test.errors
     return {
       wpm: Math.round(correctChars / 5 / (seconds / 60)),
-      acc: typed === 0 ? 100 : Math.round((correctChars / typed) * 100),
+      acc: presses === 0 ? 100 : Math.round((test.pos / presses) * 100),
     }
   }, [test, now])
 
