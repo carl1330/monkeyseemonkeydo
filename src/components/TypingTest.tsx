@@ -156,6 +156,9 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
 
   const nextChar = test.finished ? null : test.chars[test.pos]
 
+  const elapsed =
+    test.startedAt === null ? 0 : Math.floor(Math.max(now - test.startedAt, 0) / 1000)
+
   if (result) {
     return (
       <div className="result-screen">
@@ -217,6 +220,11 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
       </div>
 
       {capsOn && <div className="caps-warning">⛔ caps lock is on</div>}
+
+      <div className={`timer${elapsed >= 60 ? ' over' : ''}`}>
+        {test.startedAt === null ? '0s' : `${elapsed}s`}
+        <span className="timer-goal"> / 60s</span>
+      </div>
 
       <div className="words">
         {test.chars.map((ch, i) => (

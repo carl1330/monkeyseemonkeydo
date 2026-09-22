@@ -186,6 +186,23 @@
   text-align: center;
 }
 
+.timer {
+  color: var(--main);
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.timer.over {
+  color: var(--error);
+}
+
+.timer-goal {
+  color: var(--sub);
+  font-size: 1rem;
+  font-weight: 400;
+}
+
 .words {
   font-size: 1.6rem;
   line-height: 2.4rem;
