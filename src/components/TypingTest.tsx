@@ -117,8 +117,8 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
         return { ...t, states, startedAt, errors: t.errors + 1 }
       }
 
-      // A char missed earlier stays marked incorrect for the accuracy tally
-      if (states[t.pos] === 'pending') states[t.pos] = 'correct'
+      // Clear any red marking — the right key was pressed, mistakes live in the error count
+      states[t.pos] = 'correct'
       const pos = t.pos + 1
       const finished = pos >= t.chars.length
       const errors = t.errors
