@@ -186,6 +186,44 @@
   text-align: center;
 }
 
+.shift-warning {
+  background: var(--error);
+  color: var(--bg);
+  font-weight: 700;
+  border-radius: 0.5rem;
+  padding: 0.7rem 1.2rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  animation: shift-warn-pop 0.25s ease-out;
+}
+
+.shift-warning strong {
+  text-decoration: underline;
+}
+
+@keyframes shift-warn-pop {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.kb-key.error {
+  background: var(--error);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+.hand-finger.error {
+  fill: var(--error);
+  stroke: var(--error);
+  stroke-opacity: 1;
+}
+
 .timer {
   color: var(--main);
   font-size: 1.8rem;

@@ -2,9 +2,11 @@ import type { Finger, KeyLookup } from '../data/keyboard'
 
 interface Props {
   target: KeyLookup | undefined
+  /** Side of the shift key the user wrongly pressed — its pinky is marked red */
+  wrongShiftSide?: 'left' | 'right' | null
 }
 
-type Highlight = 'active' | 'modifier' | undefined
+type Highlight = 'active' | 'modifier' | 'error' | undefined
 
 interface FingerShape {
   finger: Finger | 'l-thumb' | 'r-thumb'
@@ -43,9 +45,12 @@ const RIGHT_FINGERS: FingerShape[] = [
   mirror(LEFT_FINGERS[4], 'r-thumb'),
 ]
 
-export function Hands({ target }: Props) {
+export function Hands({ target, wrongShiftSide }: Props) {
   const highlights = new Map<string, Highlight>()
 
+  if (wrongShiftSide) {
+    highlights.set(wrongShiftSide === 'left' ? 'l-pinky' : 'r-pinky', 'error')
+  }
   if (target) {
     if (target.finger === 'thumb') {
       // Space: either thumb works — light up the right one by convention
@@ -56,7 +61,9 @@ export function Hands({ target }: Props) {
     if (target.modifier === 'shift') {
       // Shift is held with the pinky of the opposite hand
       const opposite = target.finger.startsWith('l') ? 'r-pinky' : 'l-pinky'
-      highlights.set(opposite, highlights.has(opposite) ? 'active' : 'modifier')
+      if (highlights.get(opposite) !== 'error') {
+        highlights.set(opposite, highlights.has(opposite) ? 'active' : 'modifier')
+      }
     }
     if (target.modifier === 'altgr') {
       highlights.set('r-thumb', 'modifier')

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Lesson } from '../data/lessons'
 import { generateDrill } from '../data/lessons'
+import { findKey } from '../data/keyboard'
 import { Keyboard } from './Keyboard'
 
 interface Props {
@@ -47,19 +48,21 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
   const [now, setNow] = useState(0)
   const [result, setResult] = useState<TestResult | null>(null)
   const [capsOn, setCapsOn] = useState(false)
+  const [shiftWarn, setShiftWarn] = useState<'left' | 'right' | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const caretRef = useRef<HTMLSpanElement>(null)
+  const shiftSideRef = useRef<'left' | 'right' | null>(null)
 
   const restart = useCallback(() => {
     setTest(newTest(lesson))
     setResult(null)
-    containerRef.current?.focus()
   }, [lesson])
 
-  // Focus the test area on mount so typing works immediately
+  // Focus the test area on mount and whenever it re-appears after the results screen
+  // (during results the container isn't rendered, so focusing must wait for the re-render)
   useEffect(() => {
-    containerRef.current?.focus()
-  }, [])
+    if (!result) containerRef.current?.focus()
+  }, [result])
 
   // Live timer for the WPM readout
   useEffect(() => {
@@ -102,14 +105,31 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
       e.preventDefault()
       return
     }
+    if (e.key === 'Shift') {
+      // DOM_KEY_LOCATION_RIGHT = 2
+      shiftSideRef.current = e.location === 2 ? 'right' : 'left'
+      return
+    }
     if (e.key.length !== 1 || e.ctrlKey || e.metaKey) return
     e.preventDefault()
+
+    // Proper technique: shifted characters use the pinky of the OPPOSITE hand.
+    // If the right character arrives but the wrong shift key is held, reject it.
+    let badShift: 'left' | 'right' | null = null
+    if (!test.finished && e.key === test.chars[test.pos] && e.shiftKey && shiftSideRef.current) {
+      const lookup = findKey(test.chars[test.pos])
+      if (lookup && lookup.modifier === 'shift' && lookup.finger !== 'thumb') {
+        const expected = lookup.finger.startsWith('l') ? 'right' : 'left'
+        if (shiftSideRef.current !== expected) badShift = expected
+      }
+    }
+    setShiftWarn(badShift)
 
     setTest((t) => {
       if (t.finished) return t
       const startedAt = t.startedAt ?? Date.now()
       const states = [...t.states]
-      const correct = e.key === t.chars[t.pos]
+      const correct = e.key === t.chars[t.pos] && !badShift
 
       if (!correct) {
         // Stay on the same character until the right key is pressed
@@ -203,6 +223,9 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
       ref={containerRef}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      onKeyUp={(e) => {
+        if (e.key === 'Shift') shiftSideRef.current = null
+      }}
       onClick={() => containerRef.current?.focus()}
     >
       <div className="test-header">
@@ -220,6 +243,12 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
       </div>
 
       {capsOn && <div className="caps-warning">⛔ caps lock is on</div>}
+      {shiftWarn && (
+        <div className="shift-warning">
+          ✋ right character, wrong shift! Hold shift with the <strong>{shiftWarn} pinky</strong> —
+          always the hand opposite to the letter.
+        </div>
+      )}
 
       <div className={`timer${elapsed >= 60 ? ' over' : ''}`}>
         {test.startedAt === null ? '0s' : `${elapsed}s`}
@@ -239,7 +268,7 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
         <span className="hint">tab — restart with a new drill · click here if typing does nothing</span>
       </div>
 
-      <Keyboard nextChar={nextChar} />
+      <Keyboard nextChar={nextChar} shiftWarn={shiftWarn} />
     </div>
   )
 }
