@@ -48,7 +48,11 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
+    } catch {
+      // localStorage unavailable (private mode / quota) — progress just won't persist
+    }
   }, [progress])
 
   const handleFinish = (result: TestResult) => {

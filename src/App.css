@@ -249,7 +249,10 @@
   overflow: hidden;
   margin-bottom: 2.5rem;
   user-select: none;
-  word-break: break-word;
+}
+
+.word {
+  display: inline-block;
 }
 
 .char {

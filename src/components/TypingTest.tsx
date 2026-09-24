@@ -174,6 +174,23 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
     }
   }, [test, now])
 
+  // Group chars into words (with each word's trailing-space index) so the
+  // renderer can keep whole words on one line.
+  const wordSegments = useMemo(() => {
+    const segments: { chars: { ch: string; i: number }[]; space: number | null }[] = []
+    let current: { ch: string; i: number }[] = []
+    test.chars.forEach((ch, i) => {
+      if (ch === ' ') {
+        segments.push({ chars: current, space: i })
+        current = []
+      } else {
+        current.push({ ch, i })
+      }
+    })
+    if (current.length > 0) segments.push({ chars: current, space: null })
+    return segments
+  }, [test.chars])
+
   const nextChar = test.finished ? null : test.chars[test.pos]
 
   const elapsed =
@@ -256,12 +273,22 @@ export function TypingTest({ lesson, onFinish, onBack }: Props) {
       </div>
 
       <div className="words">
-        {test.chars.map((ch, i) => (
-          <span key={i} className={`char ${test.states[i]}${i === test.pos ? ' current' : ''}`}>
-            {i === test.pos && <span className="caret" ref={caretRef} />}
-            {ch === ' ' ? ' ' : ch}
-          </span>
-        ))}
+        {wordSegments.map((segment, w) => {
+          const renderChar = (ch: string, i: number) => (
+            <span key={i} className={`char ${test.states[i]}${i === test.pos ? ' current' : ''}`}>
+              {i === test.pos && <span className="caret" ref={caretRef} />}
+              {ch === ' ' ? ' ' : ch}
+            </span>
+          )
+          return (
+            // A word's chars live in one inline-block so it never wraps mid-word;
+            // the trailing space sits outside it, giving the line its break point.
+            <span key={w}>
+              <span className="word">{segment.chars.map(({ ch, i }) => renderChar(ch, i))}</span>
+              {segment.space !== null && renderChar(' ', segment.space)}
+            </span>
+          )
+        })}
       </div>
 
       <div className="test-footer">
